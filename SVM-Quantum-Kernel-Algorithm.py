@@ -1,7 +1,16 @@
 from datasets import *
-from qiskit_aqua.utils import split_dataset_to_data_and_labels
-from qiskit_aqua.input import get_input_instance
-from qiskit_aqua import run_algorithm
+from qiskit import Aer
+from qiskit import BasicAer
+from qiskit.aqua.utils import split_dataset_to_data_and_labels, map_label_to_class_name
+from qiskit.aqua.input import ClassificationInput
+from qiskit.aqua import run_algorithm, QuantumInstance
+from qiskit.aqua.algorithms import QSVM
+from qiskit.aqua.components.feature_maps import SecondOrderExpansion
+
+# setup aqua logging
+import logging
+from qiskit.aqua import set_qiskit_aqua_logging
+# set_qiskit_aqua_logging(logging.DEBUG)  # choose INFO, DEBUG to see the log
 import numpy as np
 
 n = 2  # dimension of each data point
@@ -12,20 +21,16 @@ temp = [test_input[k] for k in test_input]
 total_array = np.concatenate(temp)
 
 aqua_dict = {
-    'problem': {'name': 'svm_classification', 'random_seed': 100},
+    'problem': {'name': 'classification', 'random_seed': 100},
     'algorithm': {
-        'name': 'QSVM.Kernel'
+        'name': 'QSVM'
     },
-    'feature_map': {'name': 'SecondOrderExpansion', 'depth': 2, 'entangler_map': {0: [1]}},
-    'multiclass_extension': {'name': 'AllPairs'},
-    'backend': {'name': 'qasm_simulator', 'shots': 256}
-}
+    'backend': {'provider': 'qiskit.BasicAer', 'name': 'qasm_simulator', 'shots': 256},
+    'feature_map': {'name': 'SecondOrderExpansion', 'depth': 2, 'entanglement': 'linear'}
+} 
 
-algo_input = get_input_instance('SVMInput')
-algo_input.training_dataset = training_input
-algo_input.test_dataset = test_input
-algo_input.datapoints = total_array
-
+algo_input = ClassificationInput(training_input, test_input, total_array)
 result = run_algorithm(aqua_dict, algo_input)
+
 for k,v in result.items():
     print("'{}' : {}".format(k, v))
